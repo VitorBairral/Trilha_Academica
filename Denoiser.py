@@ -6,14 +6,15 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 import torch
 from pytorch_lightning.callbacks import EarlyStopping
-import torch.nn.functional as F
 
 # Carregando os dados
 imagem, shape, n_pixels = leitor_imagem.read_image("imagem.png")
+noised = leitor_imagem.ruido(imagem)
 print(torch.cuda.is_available())
 
 imagem = imagem.reshape(1, -1)
-print(imagem.shape)
+noised = noised.reshape(1, -1)
+print(imagem.shape == noised.shape)
 
 # Aplicando parada antecipada para evitar sobreajuste
 
@@ -29,7 +30,7 @@ NUM_EPOCHS = 500
 treinador = L.Trainer(callbacks=[early_stopping], max_epochs=NUM_EPOCHS, accelerator="gpu", devices=1)
 arquitetura = [n_pixels[0], n_pixels[0] // 2, n_pixels[0] // 4]
 autoencoder = rede_neural.Autoencoder(arquitetura, nn.Sigmoid(), nn.MSELoss())
-dm = rede_neural.DataModule(imagem)
+dm = rede_neural.DataModule(imagem, targetData=noised)
 
 treinador.fit(autoencoder, dm)
 

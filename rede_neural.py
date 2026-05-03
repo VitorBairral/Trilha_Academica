@@ -13,8 +13,8 @@ class DataModule(L.LightningDataModule):
     # Importando os dados e transformando em matriz
     def __init__(
             self,
-            inputData,
-            targetData=None, # Temos um parâmetro de dados de target em caso de uso para denoising 
+            inputData:np.ndarray,
+            targetData:np.ndarray=np.array([]), # Temos um parâmetro de dados de target em caso de uso para denoising 
             n_cores = 1,
             seed = 4002,
             batch_size = 32,
@@ -25,7 +25,7 @@ class DataModule(L.LightningDataModule):
         self.seed = seed
         self.batch_size = batch_size
         self.entrada = inputData
-        if targetData is None:
+        if targetData == np.array([]):
             self.target = self.entrada
         else:
             self.target = targetData
@@ -72,7 +72,7 @@ class DataModule(L.LightningDataModule):
     
 class Autoencoder(L.LightningModule):
     # Por enquanto, faremos um autoencoder inteiro, que contenha o encoder e o decoder.
-    def __init__(self, arquitetura_encoder, fun_ativ, fun_perda):
+    def __init__(self, arquitetura_encoder, fun_ativ, fun_perda, penalty:str = "", factor:float = 0):
         super().__init__()
 
         arquitetura = []
@@ -90,7 +90,13 @@ class Autoencoder(L.LightningModule):
             
         
         self.camadas = nn.Sequential(*arquitetura)
-        self.fun_perda = fun_perda
+
+        # Implementando diferentes tipos de regularização:
+        if penalty == "l1":
+            self.loss_function = fun_perda + factor * sum([torch.abs(p).sum() for p in self.camadas.parameters()])
+        else:
+            self.loss_function = fun_perda
+
         self.perdas_treino = []
         self.perdas_val = []
         self.curva_aprendizado_treino = []
@@ -105,7 +111,7 @@ class Autoencoder(L.LightningModule):
     def training_step(self, batch):
         x, y = batch
         y_pred = self(x)
-        loss = self.fun_perda(y_pred, y)
+        loss = self.loss_function(y_pred, y)
 
         self.log("loss", loss, prog_bar=True)
         self.perdas_treino.append(loss)
@@ -113,14 +119,14 @@ class Autoencoder(L.LightningModule):
     def validation_step(self, batch):
         x, y = batch
         y_pred = self(x)
-        loss = self.fun_perda(y_pred, y)
+        loss = self.loss_function(y_pred, y)
         self.log("val_loss", loss, prog_bar=True)
         self.perdas_val.append(loss)
         return loss
     def test_step(self, batch):
         x, y = batch
         y_pred = self(x)
-        loss = self.fun_perda(y_pred, y)
+        loss = self.loss_function(y_pred, y)
         self.log("test_loss", loss, prog_bar=True)        
         return loss
     def on_train_epoch_end(self):

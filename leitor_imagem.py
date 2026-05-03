@@ -12,12 +12,14 @@ def read_image(filename):
     n_pixels = vector.shape
     return vector, shape, n_pixels
 
-def ruido(vector):
+def ruido(vector:np.ndarray):
+    "Recebe os dados de entrada e adiciona ruído aos dados"
     noise = np.random.normal(0, 0.1, vector.shape)
     vetor_com_ruido = vector + noise 
     vetor_com_ruido = vetor_com_ruido / max(vetor_com_ruido)
     return vetor_com_ruido
 
-def rebuild(vector, shape):
+def rebuild(vector:np.ndarray, shape:tuple[int]):
+    "Recebe o vetor da imagem desconstruída e o formato, exibindo a transformação do vetor em imagem."
     matrix = vector.reshape(shape)
     plt.imshow(matrix, cmap="gray")

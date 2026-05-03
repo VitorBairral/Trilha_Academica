@@ -25,7 +25,7 @@ class DataModule(L.LightningDataModule):
         self.seed = seed
         self.batch_size = batch_size
         self.entrada = inputData
-        if targetData == None:
+        if targetData is None:
             self.target = self.entrada
         else:
             self.target = targetData
@@ -72,18 +72,22 @@ class DataModule(L.LightningDataModule):
     
 class Autoencoder(L.LightningModule):
     # Por enquanto, faremos um autoencoder inteiro, que contenha o encoder e o decoder.
-    def __init__(self, n_input, c_ocultas, fun_ativ, fun_perda):
+    def __init__(self, arquitetura_encoder, fun_ativ, fun_perda):
         super().__init__()
 
         arquitetura = []
-        #Camada de entrada:
-        arquitetura.append(nn.Linear(n_input, c_ocultas[0]))
-        arquitetura.append(fun_ativ)
-
-        # Para as outras camadas ocultas
-        for i in range(1, len(c_ocultas)):
-            arquitetura.append(nn.Linear(c_ocultas[i-1], c_ocultas[i]))
+        camadas_ = arquitetura_encoder
+        for i in range(len(camadas_) -1):
+            arquitetura.append(nn.Linear(camadas_[i], camadas_[i + 1]))
             arquitetura.append(fun_ativ)
+        print(camadas_)
+        r_camadas = camadas_.copy()
+        r_camadas.reverse()
+        print(r_camadas)
+        for i in range(len(r_camadas) - 1):
+            arquitetura.append(nn.Linear(r_camadas[i], r_camadas[i+1]))
+            arquitetura.append(fun_ativ)
+            
         
         self.camadas = nn.Sequential(*arquitetura)
         self.fun_perda = fun_perda
@@ -105,6 +109,7 @@ class Autoencoder(L.LightningModule):
 
         self.log("loss", loss, prog_bar=True)
         self.perdas_treino.append(loss)
+        return loss
     def validation_step(self, batch):
         x, y = batch
         y_pred = self(x)

@@ -1,7 +1,7 @@
 # Este arquivo serve como script padrão para criar as redes neurais a serem utilizadas
 #Importações
 import numpy as np
-import pytorch_lightning as L
+import lightning as L
 from torch.utils.data import DataLoader, TensorDataset
 from matplotlib.image import imread
 import torch
@@ -25,7 +25,7 @@ class DataModule(L.LightningDataModule):
         self.seed = seed
         self.batch_size = batch_size
         self.entrada = inputData
-        if targetData == np.array([]):
+        if targetData.size == 0:
             self.target = self.entrada
         else:
             self.target = targetData
@@ -74,6 +74,8 @@ class Autoencoder(L.LightningModule):
     # Por enquanto, faremos um autoencoder inteiro, que contenha o encoder e o decoder.
     def __init__(self, arquitetura_encoder, fun_ativ, fun_perda, penalty:str = "", factor:float = 0):
         super().__init__()
+        self.fun_perda = fun_perda
+        self.factor = factor
 
         arquitetura = []
         camadas_ = arquitetura_encoder
@@ -90,10 +92,12 @@ class Autoencoder(L.LightningModule):
             
         
         self.camadas = nn.Sequential(*arquitetura)
+        
+        f_perda_l1 = lambda y_pred, y: fun_perda(y_pred, y) + (factor * sum([torch.abs(p).sum() for p in self.camadas.parameters()]))
 
         # Implementando diferentes tipos de regularização:
         if penalty == "l1":
-            self.loss_function = fun_perda + factor * sum([torch.abs(p).sum() for p in self.camadas.parameters()])
+            self.loss_function = f_perda_l1
         else:
             self.loss_function = fun_perda
 
@@ -119,6 +123,8 @@ class Autoencoder(L.LightningModule):
     def validation_step(self, batch):
         x, y = batch
         y_pred = self(x)
+        print(f"y predito {y_pred}")
+        print(f"y real {y}")
         loss = self.loss_function(y_pred, y)
         self.log("val_loss", loss, prog_bar=True)
         self.perdas_val.append(loss)

@@ -7,6 +7,8 @@ from matplotlib.image import imread
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.func import jacrev
+
 
 class DataModule(L.LightningDataModule):
     # Classe DataModule, responsável por todo o tratamento dos dados de entrada
@@ -34,8 +36,8 @@ class DataModule(L.LightningDataModule):
         # Vamos alimentar cada estágio com a mesma entrada e a mesma saída
         # Estamos trabalhando com aprendizado de máquina não supervisionado comparando a entrada 
         # e a saída, logo, em cada estágio da otimização, os valores permanecerão os mesmos.
-        tensor_entrada = torch.tensor(self.entrada, dtype=torch.float32)
-        tensor_target = torch.tensor(self.target, dtype=torch.float32)
+        tensor_entrada = torch.tensor(self.entrada, dtype=torch.float32, requires_grad=True)
+        tensor_target = torch.tensor(self.target, dtype=torch.float32, requires_grad=True)
         if stage == "fit":
             self.input_treino = tensor_entrada
             self.target_treino = tensor_target

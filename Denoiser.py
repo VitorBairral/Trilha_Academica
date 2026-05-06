@@ -1,7 +1,7 @@
 # Este código treina um autoencoder sem regularização
 import rede_neural
 import leitor_imagem
-import lightning as L
+import pytorch_lightning as L
 import torch.nn as nn
 import matplotlib.pyplot as plt
 import torch

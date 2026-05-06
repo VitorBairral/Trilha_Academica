@@ -1,7 +1,7 @@
 # Este arquivo serve como script padrão para criar as redes neurais a serem utilizadas
 #Importações
 import numpy as np
-import lightning as L
+import pytorch_lightning as L
 from torch.utils.data import DataLoader, TensorDataset
 from matplotlib.image import imread
 import torch

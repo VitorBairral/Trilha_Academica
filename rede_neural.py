@@ -72,6 +72,16 @@ class DataModule(L.LightningDataModule):
     
 class Autoencoder(L.LightningModule):
     # Por enquanto, faremos um autoencoder inteiro, que contenha o encoder e o decoder.
+    def frobenius(self, x):
+        J = torch.autograd.functional.jacobian(self, x[0:1], create_graph=True)
+        J = J.squeeze().detach()
+        shape = J.shape
+        soma = 0
+        for i in range(shape[0]):
+            for j in range(shape[1]):
+                soma += (abs(J[i][j]))**2
+        return np.sqrt(soma)
+
     def __init__(self, arquitetura_encoder, fun_ativ, fun_perda, penalty:str = "", factor:float = 0):
         super().__init__()
         self.fun_perda = fun_perda
@@ -92,14 +102,16 @@ class Autoencoder(L.LightningModule):
             
         
         self.camadas = nn.Sequential(*arquitetura)
-        
-        f_perda_l1 = lambda y_pred, y: fun_perda(y_pred, y) + (factor * sum([torch.abs(p).sum() for p in self.camadas.parameters()]))
-
+        f_perda_pura = lambda self, x, y_pred, y: fun_perda(y_pred, y)
+        f_perda_l1 = lambda self, x, y_pred, y: fun_perda(y_pred, y) + (factor * sum([torch.abs(p).sum() for p in self.camadas.parameters()]))
+        f_perda_c = lambda self, x, y_pred, y: fun_perda(y_pred, y) + (factor * self.frobenius(x))
         # Implementando diferentes tipos de regularização:
         if penalty == "l1":
             self.loss_function = f_perda_l1
+        elif penalty == "c":
+            self.loss_function = f_perda_c
         else:
-            self.loss_function = fun_perda
+            self.loss_function = f_perda_pura
 
         self.perdas_treino = []
         self.perdas_val = []
@@ -115,7 +127,7 @@ class Autoencoder(L.LightningModule):
     def training_step(self, batch):
         x, y = batch
         y_pred = self(x)
-        loss = self.loss_function(y_pred, y)
+        loss = self.loss_function(self, x, y_pred, y)
 
         self.log("loss", loss, prog_bar=True)
         self.perdas_treino.append(loss)
@@ -123,16 +135,14 @@ class Autoencoder(L.LightningModule):
     def validation_step(self, batch):
         x, y = batch
         y_pred = self(x)
-        print(f"y predito {y_pred}")
-        print(f"y real {y}")
-        loss = self.loss_function(y_pred, y)
+        loss = self.loss_function(self, x, y_pred, y)
         self.log("val_loss", loss, prog_bar=True)
         self.perdas_val.append(loss)
         return loss
     def test_step(self, batch):
         x, y = batch
         y_pred = self(x)
-        loss = self.loss_function(y_pred, y)
+        loss = self.loss_function(self, x, y_pred, y)
         self.log("test_loss", loss, prog_bar=True)        
         return loss
     def on_train_epoch_end(self):

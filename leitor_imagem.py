@@ -1,5 +1,5 @@
 import numpy as np
-from matplotlib.image import imread
+from matplotlib.image import imread, imsave
 import matplotlib.pyplot as plt
 
 def read_image(filename):
@@ -15,9 +15,10 @@ def read_image(filename):
 def ruido(vector):
     noise = np.random.normal(0, 0.1, vector.shape)
     vetor_com_ruido = vector + noise 
-    vetor_com_ruido = vetor_com_ruido / max(vetor_com_ruido)
+    vetor_com_ruido = np.sqrt((vetor_com_ruido / max(vetor_com_ruido))**2)
     return vetor_com_ruido
 
-def rebuild(vector, shape):
+def rebuild(vector, shape, outname="saida.png"):
+
     matrix = vector.reshape(shape)
-    plt.imshow(matrix, cmap="gray")
+    imsave(outname, matrix, cmap="gray", dpi=300)
